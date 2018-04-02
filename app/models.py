@@ -2,6 +2,10 @@ from flask_mongoengine import MongoEngine
 from mongoengine import errors  # noqa: for other imports
 from . import app
 
+# TODO tweak for heroku, make this configurable in a settings file
+import os
+app.config['MONGODB_HOST'] = os.getenv('MONGODB_URI', 'localhost')
+
 db = MongoEngine(app)
 
 
