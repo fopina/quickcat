@@ -1,7 +1,7 @@
-# quickcat
+# QuickCat
 Quickly Categorize images
 
-** DISCLAIMER **
+## DISCLAIMER
 
 This a pre-alpha-alpha version of whatever this application could be.
 
