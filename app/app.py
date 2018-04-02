@@ -20,20 +20,14 @@ def api_vote():
     image = models.Image.objects.filter(url=request.form.get('url')).first()
     
     if category and image:
-        # TODO atomify this
-        if not image.reviews:  # cover None case
-            image.reviews = 1
-        else:
-            image.reviews += 1
-        if image.category_votes:
-            # TODO needs to be a copy to be marked as changed...
-            # https://github.com/MongoEngine/mongoengine/issues/889
-            m = image.category_votes.copy()
-        else:
-            m = {}
-        m[category.name] = m.get(category.name, 0) + 1
-        image.category_votes = m
-        image.save()
+        image.update(**{
+            # ninja style to be able to increment categories with spaces
+            # HACKER WARNING: this might look like a good injection point
+            # but categories are created manually and I am sure there are better
+            # eggs to hunt in the rest of this unsafe code!
+            'inc__category_votes__%s' % category.name: 1,
+            'inc__reviews': 1
+        })
         return jsonify(models.Image.objects.order_by('reviews')[:3])
     else:
         return jsonify({}), 400
