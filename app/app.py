@@ -1,5 +1,5 @@
 import click
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, abort
 import mongoengine
 from . import app, models
 
@@ -7,6 +7,69 @@ from . import app, models
 @app.route('/')
 def index():
     return render_template('index.html', categories=models.Category.objects.all())
+
+
+@app.route('/stats')
+@app.route('/stats/')
+def stats():
+    data = []
+    for cat in models.Category.objects.all():
+        data.append({
+            'name': cat.name,
+            'size': models.Image.objects.filter(**{
+                'category_votes__%s__gte' % cat.name: 0
+            }).count(),
+        })
+
+    return render_template(
+        'stats.html',
+        categories=data,
+        other=[
+            {
+                'id': 'uncat',
+                'name': 'Uncategorized',
+                'size': models.Image.objects.filter(
+                    category_votes=None
+                ).count(),
+            },
+            {
+                'id': 'total',
+                'name': 'Total images',
+                'size': models.Image.objects.count(),
+            }
+        ]
+    )
+
+
+@app.route('/stats/<name>')
+def stats_category(name):
+    category = models.Category.objects.filter(name=name).first()
+    if category is None:
+        abort(404)
+    return render_template(
+        'stats_category.html',
+        category=category,
+        images=models.Image.objects.filter(**{
+                'category_votes__%s__gte' % category.name: 0
+        })
+    )
+
+
+@app.route('/stats/o/<cid>')
+def stats_uncategory(cid):
+    if cid == 'total':
+        category = 'Total images'
+        images = models.Image.objects.all()
+    elif cid == 'uncat':
+        category = 'Uncategorized'
+        images = models.Image.objects.filter(category_votes=None)
+    else:
+        abort(404)
+    return render_template(
+        'stats_category.html',
+        category={'name': category},
+        images=images
+    )
 
 
 @app.route('/api/more')

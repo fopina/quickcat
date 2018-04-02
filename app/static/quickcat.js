@@ -1,3 +1,9 @@
+function update_image(card, data) {
+	$('.review_number', card).text(data.reviews || 0);
+  	$('img', card).attr('src', data.url);
+  	$('button', card).data('url', data.url);
+}
+
 $(function() {
 	$('div.card button').click(function () {
 		card = $(this).parents('div.card');
@@ -13,9 +19,7 @@ $(function() {
 				image_id = $(this).data('image');
 		  		for (i=0; i<data.length; i++) {
 		  			if ($.inArray(data[i].url, existing) < 0) {
-						$('.review_number', card).text(data[i].reviews || 0);
-					  	$('img', card).attr('src', data[i].url);
-					  	$('button', card).data('url', data[i].url);
+		  				update_image(card, data[i]);
 					  	break;
 					}
 				}
@@ -26,9 +30,7 @@ $(function() {
 
 	$.getJSON( "/api/more", function( data ) {
 	  for (i=0; i<data.length; i++) {
-	  	$('#id_image_' + i + ' .review_number').text(data[i].reviews || 0);
-	  	$('#id_image_' + i + ' img').attr('src', data[i].url);
-	  	$('#id_image_' + i + ' button').data('url', data[i].url);
+	  	update_image($('#id_image_' + i), data[i]);
 	  }
 	});
 });
