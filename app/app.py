@@ -34,16 +34,15 @@ def api_vote():
 
 
 @app.cli.command()
-@click.argument('infile')
+@click.argument('infile', type=click.File('r'))
 def load_file(infile):
     cnt = [0, 0]
-    with open(infile, 'r') as inp:
-        for url in inp:
-            try:
-                models.Image(url=url.strip()).save()
-                cnt[0] += 1
-            except models.errors.NotUniqueError:
-                cnt[1] += 1
+    for url in infile:
+        try:
+            models.Image(url=url.strip()).save()
+            cnt[0] += 1
+        except models.errors.NotUniqueError:
+            cnt[1] += 1
     click.echo('%d added, %d already existed' % tuple(cnt))
 
 
