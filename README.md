@@ -45,3 +45,5 @@ heroku run ./quickcat categories "CATEGORY 1" "CATEGORY 2" "...."
 ```
 
 Now just share your herokuapp URL with the group!
+
+Check out `https://YOURAPP.herokuapp.com/stats` to keep up to date with progress :)
