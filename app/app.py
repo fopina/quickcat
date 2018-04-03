@@ -97,16 +97,31 @@ def api_vote():
 
 
 @app.cli.command()
+@click.option('-b', '--bulk', is_flag=True)
 @click.argument('infile', type=click.File('r'))
-def load_file(infile):
-    cnt = [0, 0]
-    for url in infile:
+def load_file(infile, bulk):
+    if bulk:
+        # better but no stats on inserted records because of possible duplicates...
+        imgs = [
+            models.Image(url=url.strip())
+            for url in infile
+        ]
+        c_b = models.Image.objects.count()
         try:
-            models.Image(url=url.strip()).save()
-            cnt[0] += 1
-        except models.errors.NotUniqueError:
-            cnt[1] += 1
-    click.echo('%d added, %d already existed' % tuple(cnt))
+            models.Image.objects.insert(imgs, write_concern={'continue_on_error': False})
+        except models.errors.NotUniqueError as e:
+            pass
+        c_f = models.Image.objects.count()
+        click.echo('%d added' % (c_f - c_b))
+    else:
+        cnt = [0, 0]
+        for url in infile:
+            try:
+                models.Image(url=url.strip()).save()
+                cnt[0] += 1
+            except models.errors.NotUniqueError:
+                cnt[1] += 1
+        click.echo('%d added, %d already existed' % tuple(cnt))
 
 
 @app.cli.command()
