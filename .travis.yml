@@ -2,6 +2,8 @@ language: python
 python:
   - 2.7
   - 3.6.4
+env:
+  - FLASK_APP=quickcat
 install:
   - pip install -r requirements_test.txt
   - pip install coveralls

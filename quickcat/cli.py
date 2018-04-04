@@ -1,5 +1,6 @@
 import click
 from .routes import app
+from . import models
 
 
 @app.cli.command()
@@ -14,7 +15,7 @@ def load_file(infile, bulk):
         ]
         c_b = models.Image.objects.count()
         try:
-            models.Image.objects.insert(imgs, write_concern={'continue_on_error': False})
+            models.Image.objects.insert(imgs, write_concern={'continue_on_error': True})
         except models.errors.NotUniqueError as e:
             pass
         c_f = models.Image.objects.count()

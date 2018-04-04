@@ -3,23 +3,27 @@
 import unittest
 import json
 import re
+import click
+from click.testing import CliRunner
+import warnings
 
 # UGLY WARNING: refactor app setup to make this prettier
 import os
 os.environ['MONGODB_URI'] = 'mongomock://localhost/test'
 
-import quickcat.routes  # load routes
-quickcat.routes.app.config['TESTING'] = True
+from quickcat.routes import app
+app.config['TESTING'] = True
 from quickcat.models import Image, Category, db
+from quickcat import cli
 
 
 class QuickCatTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.app = quickcat.routes.app.test_client()
+        self.app = app.test_client()
 
     def tearDown(self):
-        with quickcat.routes.app.app_context():
+        with app.app_context():
             db.connection.drop_database('test')
 
     def test_index(self):
@@ -152,7 +156,85 @@ class QuickCatTestCase(unittest.TestCase):
             [('b', '0'), ('c', '0')]
         )
 
+    def test_cli_load_file(self):
+        with warnings.catch_warnings():
+            # required to avoid DeprecationWarnings in the output
+            warnings.filterwarnings("ignore",category=DeprecationWarning)
+            import mongoengine
 
+            runner = CliRunner()
+            with runner.isolated_filesystem():
+                with open('hello.txt', 'w') as f:
+                    f.write('urlA\n')
+                    f.write('urlB\n')
+
+                result = runner.invoke(cli.load_file, ['hello.txt'])
+                self.assertEqual(result.exit_code, 0)
+                self.assertEqual(result.output, '2 added, 0 already existed\n')
+
+                result = runner.invoke(cli.load_file, ['hello.txt'])
+                self.assertEqual(result.exit_code, 0)
+                self.assertEqual(result.output, '0 added, 2 already existed\n')
+
+                self.assertEqual(Image.objects.count(), 2)
+
+    def test_cli_load_file_bulk(self):
+        with warnings.catch_warnings():
+            # required to avoid DeprecationWarnings in the output
+            warnings.filterwarnings("ignore",category=DeprecationWarning)
+            import mongoengine
+
+            runner = CliRunner()
+            with runner.isolated_filesystem():
+                with open('hello.txt', 'w') as f:
+                    f.write('urlA\n')
+                    f.write('urlB\n')
+
+                result = runner.invoke(cli.load_file, ['hello.txt', '-b'])
+                self.assertEqual(result.exit_code, 0)
+                self.assertEqual(result.output, '2 added\n')
+                self.assertEqual(Image.objects.count(), 2)
+
+                # TODO re-running same file adds images even though they have same URL
+                # bug in mongomock (ignoring unique)???
+
+    def test_cli_categories(self):
+        runner = CliRunner()
+        
+        self.assertEqual(Category.objects.count(), 0)
+
+        result = runner.invoke(cli.categories, ['cat A'], input='y\n')
+        self.assertEqual(result.exit_code, 0)
+        self.assertEqual(result.output, '''\
+Existing categories will be removed and these will be added
+cat A
+Continue? [y/N]: y
+Categories recreated
+''')
+        self.assertEqual(Category.objects.count(), 1)
+        self.assertEqual(Category.objects.first().name, 'cat A')
+
+        result = runner.invoke(cli.categories, ['cat B', 'cat C'], input='n\n')
+        self.assertEqual(result.exit_code, 0)
+        self.assertEqual(result.output, '''\
+Existing categories will be removed and these will be added
+cat B, cat C
+Continue? [y/N]: n
+''')
+        self.assertEqual(Category.objects.count(), 1)
+        self.assertEqual(Category.objects.first().name, 'cat A')
+
+        result = runner.invoke(cli.categories, ['cat B', 'cat C'], input='y\n')
+        self.assertEqual(result.exit_code, 0)
+        self.assertEqual(result.output, '''\
+Existing categories will be removed and these will be added
+cat B, cat C
+Continue? [y/N]: y
+Categories recreated
+''')
+        self.assertEqual(Category.objects.count(), 2)
+        self.assertEqual(Category.objects.all()[0].name, 'cat B')
+        self.assertEqual(Category.objects.all()[1].name, 'cat C')
 
 
 if __name__ == '__main__':
