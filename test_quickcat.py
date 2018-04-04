@@ -156,6 +156,59 @@ class QuickCatTestCase(unittest.TestCase):
             [('b', '0'), ('c', '0')]
         )
 
+    def test_stats_json(self):
+        Category.objects.insert([
+            Category(name='catA'),
+            Category(name='catB'),
+        ])
+        Image.objects.insert([
+            Image(url='a'),
+            Image(url='b'),
+            Image(url='c')
+        ])
+
+        res = self.app.get('/stats?format=json')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(
+            json.loads(res.get_data(as_text=True)),
+            {
+                'other': [
+                    {'size': 3, 'id': 'uncat', 'name': 'Uncategorized'},
+                    {'size': 3, 'id': 'total', 'name': 'Total images'}
+                ], 
+                'categories': [
+                    {'name': 'catA', 'size': 0},
+                    {'name': 'catB', 'size': 0}
+                ]
+            }
+        )
+        Image.objects.filter(url='a').update(inc__category_votes__catA=1, inc__reviews=1)
+        res = self.app.get('/stats/catA?format=json')
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.get_data(as_text=True))
+        self.assertEqual(data['category']['name'], 'catA')
+        self.assertEqual(len(data['images']), 1)
+        self.assertEqual(data['images'][0]['url'], 'a')
+
+        res = self.app.get('/stats/catB?format=json')
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.get_data(as_text=True))
+        self.assertEqual(data['category']['name'], 'catB')
+        self.assertEqual(len(data['images']), 0)
+
+        res = self.app.get('/stats/catB?format=json')
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.get_data(as_text=True))
+        self.assertEqual(data['category']['name'], 'catB')
+        self.assertEqual(len(data['images']), 0)
+
+        res = self.app.get('/stats/o/uncat?format=json')
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.get_data(as_text=True))
+        self.assertEqual(data['category']['name'], 'Uncategorized')
+        self.assertEqual(len(data['images']), 2)
+
+
     def test_cli_load_file(self):
         with warnings.catch_warnings():
             # required to avoid DeprecationWarnings in the output
@@ -199,42 +252,47 @@ class QuickCatTestCase(unittest.TestCase):
                 # bug in mongomock (ignoring unique)???
 
     def test_cli_categories(self):
-        runner = CliRunner()
-        
-        self.assertEqual(Category.objects.count(), 0)
+        with warnings.catch_warnings():
+            # required to avoid DeprecationWarnings in the output
+            warnings.filterwarnings("ignore",category=DeprecationWarning)
+            import mongoengine
 
-        result = runner.invoke(cli.categories, ['cat A'], input='y\n')
-        self.assertEqual(result.exit_code, 0)
-        self.assertEqual(result.output, '''\
+            runner = CliRunner()
+            
+            self.assertEqual(Category.objects.count(), 0)
+
+            result = runner.invoke(cli.categories, ['cat A'], input='y\n')
+            self.assertEqual(result.exit_code, 0)
+            self.assertEqual(result.output, '''\
 Existing categories will be removed and these will be added
 cat A
 Continue? [y/N]: y
 Categories recreated
 ''')
-        self.assertEqual(Category.objects.count(), 1)
-        self.assertEqual(Category.objects.first().name, 'cat A')
+            self.assertEqual(Category.objects.count(), 1)
+            self.assertEqual(Category.objects.first().name, 'cat A')
 
-        result = runner.invoke(cli.categories, ['cat B', 'cat C'], input='n\n')
-        self.assertEqual(result.exit_code, 0)
-        self.assertEqual(result.output, '''\
+            result = runner.invoke(cli.categories, ['cat B', 'cat C'], input='n\n')
+            self.assertEqual(result.exit_code, 0)
+            self.assertEqual(result.output, '''\
 Existing categories will be removed and these will be added
 cat B, cat C
 Continue? [y/N]: n
 ''')
-        self.assertEqual(Category.objects.count(), 1)
-        self.assertEqual(Category.objects.first().name, 'cat A')
+            self.assertEqual(Category.objects.count(), 1)
+            self.assertEqual(Category.objects.first().name, 'cat A')
 
-        result = runner.invoke(cli.categories, ['cat B', 'cat C'], input='y\n')
-        self.assertEqual(result.exit_code, 0)
-        self.assertEqual(result.output, '''\
+            result = runner.invoke(cli.categories, ['cat B', 'cat C'], input='y\n')
+            self.assertEqual(result.exit_code, 0)
+            self.assertEqual(result.output, '''\
 Existing categories will be removed and these will be added
 cat B, cat C
 Continue? [y/N]: y
 Categories recreated
 ''')
-        self.assertEqual(Category.objects.count(), 2)
-        self.assertEqual(Category.objects.all()[0].name, 'cat B')
-        self.assertEqual(Category.objects.all()[1].name, 'cat C')
+            self.assertEqual(Category.objects.count(), 2)
+            self.assertEqual(Category.objects.all()[0].name, 'cat B')
+            self.assertEqual(Category.objects.all()[1].name, 'cat C')
 
 
 if __name__ == '__main__':

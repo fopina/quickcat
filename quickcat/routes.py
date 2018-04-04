@@ -27,24 +27,32 @@ def stats():
             }).count(),
         })
 
-    return render_template(
-        'stats.html',
-        categories=data,
-        other=[
-            {
-                'id': 'uncat',
-                'name': 'Uncategorized',
-                'size': models.Image.objects.filter(
-                    category_votes=None
-                ).count(),
-            },
-            {
-                'id': 'total',
-                'name': 'Total images',
-                'size': models.Image.objects.count(),
-            }
-        ]
-    )
+    other=[
+        {
+            'id': 'uncat',
+            'name': 'Uncategorized',
+            'size': models.Image.objects.filter(
+                category_votes=None
+            ).count(),
+        },
+        {
+            'id': 'total',
+            'name': 'Total images',
+            'size': models.Image.objects.count(),
+        }
+    ]
+
+    if request.args.get('format') == 'json':
+        return jsonify(dict(
+            categories=data,
+            other=other
+        ))
+    else:
+        return render_template(
+            'stats.html',
+            categories=data,
+            other=other
+        )
 
 
 @app.route('/stats/<name>')
@@ -52,13 +60,20 @@ def stats_category(name):
     category = models.Category.objects.filter(name=name).first()
     if category is None:
         abort(404)
-    return render_template(
-        'stats_category.html',
-        category=category,
-        images=models.Image.objects.filter(**{
-                'category_votes__%s__gte' % category.name: 0
-        })
-    )
+    images=models.Image.objects.filter(**{
+        'category_votes__%s__gte' % category.name: 0
+    })
+    if request.args.get('format') == 'json':
+        return jsonify(
+            category=category,
+            images=images
+        )
+    else:
+        return render_template(
+            'stats_category.html',
+            category=category,
+            images=images
+        )
 
 
 @app.route('/stats/o/<cid>')
@@ -71,11 +86,18 @@ def stats_uncategory(cid):
         images = models.Image.objects.filter(category_votes=None)
     else:
         abort(404)
-    return render_template(
-        'stats_category.html',
-        category={'name': category},
-        images=images
-    )
+
+    if request.args.get('format') == 'json':
+        return jsonify(
+            category={'name': category},
+            images=images
+        )
+    else:
+        return render_template(
+            'stats_category.html',
+            category={'name': category},
+            images=images
+        )
 
 
 @app.route('/api/more')
