@@ -1,0 +1,12 @@
+language: python
+python:
+  - 2.7
+  - 3.6.4
+install:
+  - pip install -r requirements_test.txt
+  - pip install coveralls
+script:
+  - coverage run test_quickcat.py
+after_success:
+  - coveralls
+  - coverage report -m

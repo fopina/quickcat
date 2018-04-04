@@ -1,6 +1,8 @@
 # QuickCat
 Quickly Categorize images
 
+[![Build Status](https://travis-ci.org/fopina/quickcat.svg)](https://travis-ci.org/fopina/quickcat) [![Coverage Status](https://coveralls.io/repos/github/fopina/quickcat/badge.svg?branch=master)](https://coveralls.io/github/fopina/quickcat?branch=master)
+
 ## DISCLAIMER
 
 This a pre-alpha-alpha version of whatever this application could be.
