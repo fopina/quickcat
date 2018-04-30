@@ -102,7 +102,10 @@ def stats_uncategory(cid):
 
 @app.route('/api/more')
 def api_more():
-    return jsonify(models.Image.objects.order_by('reviews')[:3])
+    return jsonify({
+        'pics': models.Image.objects.order_by('reviews')[:3],
+        'left': models.Image.objects.filter(category_votes=None).count(),
+    })
 
 
 @app.route('/api/vote', methods=['POST'])
@@ -119,7 +122,7 @@ def api_vote():
             'inc__category_votes__%s' % category.name: 1,
             'inc__reviews': 1
         })
-        return jsonify(models.Image.objects.order_by('reviews')[:3])
+        return api_more()
     else:
         return jsonify({}), 400
 
