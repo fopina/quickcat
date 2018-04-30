@@ -46,6 +46,7 @@ Then, don't forget to create the categories with
 heroku run ./quickcat categories "CATEGORY 1" "CATEGORY 2" "...."
 ```
 
-Now just share your herokuapp URL with the group!
+Now just share your herokuapp URL with the group!  
+Make sure you update `quickcat/templates/index.html` with some description on the categories selection criteria to keep everyone in sync.
 
 Check out `https://YOURAPP.herokuapp.com/stats` to keep up to date with progress :)
