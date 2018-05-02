@@ -38,7 +38,10 @@ class QuickCatTestCase(unittest.TestCase):
     def test_api_more(self):
         res = self.app.get('/api/more')
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(json.loads(res.get_data(as_text=True)), [])
+        self.assertEqual(
+            json.loads(res.get_data(as_text=True)),
+            {'pics': [], 'left': 0}
+        )
         Image.objects.insert([
             Image(url='a'),
             Image(url='b'),
@@ -48,16 +51,28 @@ class QuickCatTestCase(unittest.TestCase):
         res = self.app.get('/api/more')
         self.assertEqual(res.status_code, 200)
         data = json.loads(res.get_data(as_text=True))
-        for d in data:
+        for d in data['pics']:
             del(d['_id'])
-        self.assertEqual(data, [{'url': 'a'}, {'url': 'b'}, {'url': 'c'}])
+        self.assertEqual(
+            data,
+            {
+                'pics': [{'url': 'a'}, {'url': 'b'}, {'url': 'c'}],
+                'left': 4,
+            }
+        )
         Image.objects.filter(url='a').update(reviews=2)
         res = self.app.get('/api/more')
         self.assertEqual(res.status_code, 200)
         data = json.loads(res.get_data(as_text=True))
-        for d in data:
+        for d in data['pics']:
             del(d['_id'])
-        self.assertEqual(data, [{'url': 'b'}, {'url': 'c'}, {'url': 'd', 'reviews': 1}])
+        self.assertEqual(
+            data,
+            {
+                'pics': [{'url': 'b'}, {'url': 'c'}, {'url': 'd', 'reviews': 1}],
+                'left': 4,
+            }
+        )
 
     def test_api_vote(self):
         Category.objects.insert([
